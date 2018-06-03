@@ -23,16 +23,16 @@ helper.player.on('ready', () => {
 	});
 	console.log(helper.status);
 	// 'status': {
-	//  	'track': ...,
-	//		'shuffle': ...,
-	//		'playing_position': ...
-	//  }
+	//   'track': ...,
+	//   'shuffle': ...,
+	//   'playing_position': ...
+	// }
 });
 
 helper.player.on('error', error => {
-  if (error.message.match(/No user logged in/)) {
-    // also fires when Spotify client quits
-  } else {
-    // other errors: /Cannot start Spotify/ and /Spotify is not installed/
-  }
+	if (error.message.match(/No user logged in/)) {
+		// also fires when Spotify client quits
+	} else {
+		// other errors: /Cannot start Spotify/ and /Spotify is not installed/
+	}
 });
