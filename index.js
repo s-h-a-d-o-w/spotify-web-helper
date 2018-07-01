@@ -405,15 +405,15 @@ function SpotifyWebHelper(opts) {
 						if (retries > 15) {
 							reject();
 						}
-						debug('Waiting for shutdown...');
-						setTimeout(checkStatus.bind(null, retries + 1), intervals.checkIsShutdown);
+						debug(`Waiting for shutdown ${retries}...`);
+						setTimeout(() => {checkStatus(retries + 1)}, intervals.checkIsShutdown);
 					} else {
 						resolve();
 					}
 				})
 				.catch(err => this.player.emit('error', err))
 			};
-			checkStatus(0);
+			checkStatus(1);
 		});
 	};
 
@@ -433,7 +433,11 @@ function SpotifyWebHelper(opts) {
 			debug('Processing status.');
 
 			// Spotify is being shut down
-			if(res.online === false) {
+			if(res.online === false && (
+				!res.hasOwnProperty('volume') ||
+				!res.hasOwnProperty('context') ||
+				!res.hasOwnProperty('play_enabled')
+			)) {
 				this.player.emit('closing');
 
 				// Restart Web Helper once Spotify process is dead.
