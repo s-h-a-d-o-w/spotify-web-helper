@@ -15,10 +15,7 @@ const SpotifyWebHelper = require('spotify-web-helper');
 const helper = SpotifyWebHelper();
 
 helper.player.on('error', err => {
-  // Since the introduction of lifecycle events, emitted errors have become rare.
-  // It's still worth having at least a minimum error handler like this one, as  
-  // the process will exit otherwise:
-  // https://nodejs.org/dist/latest/docs/api/events.html#events_error_events
+  // See event docs below for details on importance of error handling. 
   console.log(err);
 });
 
@@ -90,6 +87,11 @@ Currently, these messages are only related to the lifecycle, no data is being ou
          // Give Spotify a few seconds to recover after an error has happened.
          delayAfterError: 5000,
          
+         // This is relevant for cases such as when internet connection is down. Spotify 
+         // Web Helper will use this delay to continuously check whether Spotify is still 
+         // running and whether internet connection is available again.  
+         delayReinitialize: 10000,
+         
          // Spotify's service should always be running or started by SpotifyWebHelper  
          // anyway. But should the case ever occur that a connection can still not be
          // established, this is the delay for how frequently connection attempts to 
@@ -114,7 +116,7 @@ Currently, these messages are only related to the lifecycle, no data is being ou
 ### Class: PlayerEventEmitter ###
 Inherits from [EventEmitter](https://nodejs.org/dist/latest/docs/api/events.html#events_class_eventemitter).
 
-#### Event: 'open'
+#### Event: 'open' <a name="open">
 Spotify client was started.
 
 #### Event: 'closing'
@@ -123,19 +125,26 @@ User triggered shutdown of the Spotify client.
 #### Event: 'close'
 Spotify client shutdown is done.
 
-#### Event: 'end'
-Playback has ended.
-
 #### Event: 'error'
-An error has occurred. The listener callback receive the `<Error>` as first
-argument. An error occurs when Spotify cannot be started, is not installed, or quits.
-Refer to the example above to see how to distinguish errors.
+Should an error occur that stops the web helper service, the error emitted 
+is `'FATAL ERROR'`, otherwise it is an `<Error>` object.
+
+We try to keep the service running under most circumstances though and have 
+introduced Spotify lifecycle events ([`open`, `closing`, `close`](#open)) because of it.
+
+One example for when an error is still triggered is when the user experiences 
+temporary loss of internet connection. So it may still be worth having at 
+least a minimum error handler, as the process exits on errors otherwise:  
+https://nodejs.org/dist/latest/docs/api/events.html#events_error_events
 
 #### Event: 'pause'
 Playback has paused.
 
 #### Event: 'play'
 Playback has started.
+
+#### Event: 'end'
+Playback has ended.
 
 #### Event: 'seek'
 User has changed the current playing positon.

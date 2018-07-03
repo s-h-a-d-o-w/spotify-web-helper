@@ -105,7 +105,8 @@ function SpotifyWebHelper(opts) {
 		checkIsShutdown: 2000,
 		delayAfterStart: 3000,
 		delayAfterError: 5000,
-		retryHelperConnection: 5000
+		delayReinitialize: 10000, // Cases where whole service is started from the beginning (port checks, etc.)
+		retryHelperConnection: 5000,
 	}, opts.intervals);
 
 
@@ -231,8 +232,8 @@ function SpotifyWebHelper(opts) {
 		});
 	};
 
-	this.getOauthToken = function () {
-		return new Promise(function (resolve, reject) {
+	this.getOauthToken = () => {
+		return new Promise((resolve, reject) => {
 			getJSON({
 				url: 'http://open.spotify.com/token'
 			})
@@ -482,9 +483,28 @@ function SpotifyWebHelper(opts) {
 		})
 		.then(() => {
 			debug('Starting to listen for events.');
-			return listen();
+			listen();
 		})
-		.catch(err => this.player.emit('error', err));
+		.catch(err => {
+			// RequestErrors might occur because internet connection is lost
+			// => We should keep retrying forever, since we don't know how long
+			// this will last and it doesn't do any harm.
+
+			// Also - makes sense to fully reinitialize because - what if the user
+			// quits Spotify while their internet connection is out and then starts
+			// it again?
+			if(err.name === 'RequestError') {
+				this.player.emit('error', err);
+				debug('Reinitializing...');
+				setTimeout(init, intervals.delayReinitialize);
+			}
+			else {
+				// After this, no more code is executed, so we need to communicate
+				// this fact to the user
+				this.player.emit('error', err);
+				this.player.emit('error', 'FATAL ERROR');
+			}
+		});
 	};
 	init();
 }
